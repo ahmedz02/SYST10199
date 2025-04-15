@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>ZIM - Code Creativity</title>
+
+<!-- zimjs.com - JavaScript Canvas Framework -->
+<script type="module">
+
+import zim from "https://zimjs.org/cdn/017/zim";
+
+// Asset Lists
+const goodFood = [
+    "goodassets/01.png",
+    "goodassets/02.png",
+    "goodassets/03.png",
+    "goodassets/04.png",
+    "goodassets/05.png",
+    "goodassets/06.png",
+    "goodassets/07.png",
+    "goodassets/08.png",
+    "goodassets/09.png",
+    "goodassets/10.png",
+    "goodassets/11.png",
+    "goodassets/12.png",
+    "goodassets/13.png"
+];
+const badFood = [
+    "badfoodassets/101_waffle.png",
+    "badfoodassets/102_waffle_dish.png",
+    "badfoodassets/71_nacho.png",
+    "badfoodassets/72_nacho_dish.png",
+    "badfoodassets/77_potatochips.png",
+    "badfoodassets/78_potatochips_bowl.png",
+    "badfoodassets/79_pancakes.png",
+    "badfoodassets/80_pancakes_dish.png",
+    "badfoodassets/85_roastedchicken.png",
+    "badfoodassets/86_roastedchicken_dish.png",
+    "badfoodassets/87_ramen.png",
+    "badfoodassets/88_salmon.png",
+    "badfoodassets/93_sandwich_dish.png",
+    "badfoodassets/94_spaghetti.png",
+    "badfoodassets/95_steak.png",
+    "badfoodassets/96_steak_dish.png",
+    "badfoodassets/05_apple_pie.png",
+    "badfoodassets/06_apple_pie_dish.png",
+    "badfoodassets/07_bread.png",
+    "badfoodassets/08_bread_dish.png",
+    "badfoodassets/13_bacon.png",
+    "badfoodassets/14_bacon_dish.png",
+    "badfoodassets/15_burger.png",
+    "badfoodassets/16_burger_dish.png",
+    "badfoodassets/21_bagel_dish.png",
+    "badfoodassets/22_cheesecake.png",
+    "badfoodassets/23_cheesecake_dish.png",
+    "badfoodassets/24_cheesepuff.png",
+    "badfoodassets/29_cookies_dish.png",
+    "badfoodassets/30_chocolatecake.png",
+    "badfoodassets/31_chocolatecake_dish.png",
+    "badfoodassets/32_curry.png",
+    "badfoodassets/37_dumplings_dish.png",
+    "badfoodassets/38_friedegg.png",
+    "badfoodassets/39_friedegg_dish.png",
+    "badfoodassets/40_eggsalad.png",
+    "badfoodassets/45_frenchfries_dish.png",
+    "badfoodassets/46_fruitcake.png",
+    "badfoodassets/47_fruitcake_dish.png",
+    "badfoodassets/48_garlicbread.png",
+    "badfoodassets/53_gingerbreadman_dish.png",
+    "badfoodassets/54_hotdog.png",
+    "badfoodassets/55_hotdog_sauce.png",
+    "badfoodassets/56_hotdog_dish.png",
+    "badfoodassets/61_jam.png",
+    "badfoodassets/62_jam_dish.png",
+    "badfoodassets/63_lemonpie.png",
+    "badfoodassets/64_lemonpie_dish.png",
+    "badfoodassets/69_meatball.png",
+    "badfoodassets/70_meatball_dish.png"
+];
+
+// Setup ZIM Frame and preload assets
+new Frame(FIT, 1024, 768, black, "darkslategray", ready, ["fruitninjabackground.jpg", "01_dish.png", ...goodFood, ...badFood, "Minecraft.ttf"], "assets/");
+function ready() {
+
+    // ZIM Stage variables: F, S, W, H
+
+    const background = new Pic("fruitninjabackground.jpg").alp(.7).siz(W,H).center();
+    background.noMouse();
+
+    let score = 0;
+    const scoreLabel = new Label("Score: 0", 40, "Minecraft", white)
+        .pos(50, 50, LEFT, TOP);
+
+    const fallingFood = []; // Tracks active food items
+
+    // Difficulty settings
+    let spawnMin = 0.5;
+    let spawnMax = 1.5;
+    let difficultyLevel = 0;
+    let intervalID = null;
+
+    function spawnFood() {
+        let foodObject;
+        let type;
+
+        // 80% good food chance
+        if (rand() < 0.8) {
+            type = "good";
+            const foodPic = shuffle(goodFood)[0];
+            foodObject = new Pic(foodPic);
+        } else {
+            type = "bad";
+            const foodPic = shuffle(badFood)[0];
+            foodObject = new Pic(foodPic);
+        }
+
+        if (foodObject) {
+            // Configure food appearance and animation
+            foodObject
+                .reg(CENTER)
+                .siz(50) // Fixed size
+                .loc(rand(W), -100)
+                .cur("pointer")
+                .animate({ props:{ rotation:[360,-360]}, time:rand(5,8), ease:"linear", loop:true }) // Spin
+                .animate({ props:{y:H+100}, time:rand(4, 6), ease: "linear" }); // Fall
+
+            foodObject.foodType = type; // Tag for scoring
+            fallingFood.push(foodObject);
+        }
+    }
+
+    // Manages the food spawning interval timer
+    function startSpawning(min, max) {
+        if (intervalID) { intervalID.clear(); }
+        intervalID = interval({min:min, max:max}, spawnFood);
+        console.log("Spawning interval set to:", min, max);
+    }
+
+    startSpawning(spawnMin, spawnMax); // Initial spawn
+
+    const plate = new Pic("01_dish.png")
+        .reg(CENTER)
+        .sca(2.0)
+        .pos(0,50,CENTER,BOTTOM);
+
+    // Player controls
+    new MotionController(plate,"keydown",null,HORIZONTAL, new Boundary(plate.width/2,plate.y,W-plate.width,0));
+    new MotionController({ target: plate, type: "mousemove", speed: W, boundary: new Boundary(plate.width / 2, plate.y, W - plate.width, 0) });
+
+    // Game Loop
+    Ticker.add(() => {
+        // Loop backwards through food for safe removal during iteration
+        for (let i = fallingFood.length - 1; i >= 0; i--) {
+            const food = fallingFood[i];
+
+            // Collision Check
+            if (plate.hitTestBounds(food)) {
+                let scoreChanged = false;
+                if (food.foodType === "good") {
+                    score++;
+                    scoreChanged = true;
+                } else { score--; }
+
+                scoreLabel.text = "Score: " + score;
+                food.dispose();
+                fallingFood.splice(i, 1);
+
+                // Difficulty Increase Check (every 10 points)
+                if (scoreChanged && score > 0 && score % 10 === 0 && score / 10 > difficultyLevel) {
+                    difficultyLevel++;
+                    spawnMin = Math.max(0.1, spawnMin * 0.9);
+                    spawnMax = Math.max(0.2, spawnMax * 0.9);
+                    if (spawnMin >= spawnMax) { spawnMax = spawnMin + 0.1; }
+                    console.log(`Score hit ${score}! Difficulty up: ${difficultyLevel}`);
+                    startSpawning(spawnMin, spawnMax);
+                }
+            }
+            // Missed Food Check
+            else if (food.y > H + food.height/2) {
+                food.dispose();
+                fallingFood.splice(i, 1);
+            }
+        }
+        S.update(); // Refresh stage
+    });
+
+    // Game Title
+    new Label("Catch the Food!", 60, "Minecraft", yellow)
+        .alp(.7)
+        .pos(0,30,CENTER, TOP)
+        .animate({ from:true, wait:.5, time:.7, props:{y:50}, ease: "backOut" }); // Intro animation
+}
+
+</script>
+<meta name="viewport" content="width=device-width, user-scalable=no" />
+</head>
+<body></body>
+</html>
